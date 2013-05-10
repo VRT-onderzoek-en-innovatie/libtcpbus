@@ -1,0 +1,2 @@
+EXTRA_DIST = GITREVISION
+SUBDIRS = include src test
