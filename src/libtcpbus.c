@@ -1,3 +1,5 @@
+#include "../config.h"
+
 #include "../include/libtcpbus.h"
 #include <sys/socket.h>
 #include <errno.h>
@@ -243,9 +245,15 @@ void TcpBus_terminate() {
 	}
 }
 
-int TcpBus_rx_callback(TcpBus_rx_callback_t f) {
+int TcpBus_rx_callback_add(TcpBus_rx_callback_t f) {
 	if( rx_callback_f != NULL ) return -1;
 	rx_callback_f = f;
+	return 0;
+}
+
+int TcpBus_rx_callback_remove(TcpBus_rx_callback_t f) {
+	if( rx_callback_f == f ) rx_callback_f = NULL;
+	return 0;
 }
 
 int TcpBus_send(const char *data, size_t len) {

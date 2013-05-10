@@ -21,6 +21,7 @@ int TcpBus_init(EV_P_ int socket);
  */
 void TcpBus_terminate();
 
+
 /* Callback function prototypes
  */
 typedef void (*TcpBus_rx_callback_t)(const char *data, size_t len);
@@ -28,10 +29,16 @@ typedef void (*TcpBus_rx_callback_t)(const char *data, size_t len);
 /* Register an (additional) callback function to be called when receiving
  * data.
  *
- * Return an opaque handle to this callback,
- * or -1 on failure
+ * Returns 0 on success, -1 on failure
  */
-int TcpBus_rx_callback(TcpBus_rx_callback_t f);
+int TcpBus_rx_callback_add(TcpBus_rx_callback_t f);
+
+/* Remove a previously added callback
+ *
+ * Returns 0 on success
+ */
+int TcpBus_rx_callback_remove(TcpBus_rx_callback_t f);
+
 
 /* Send data to the bus
  * returns -1 on failure
