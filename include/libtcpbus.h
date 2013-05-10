@@ -9,8 +9,17 @@ extern "C"{
 
 /* initialize the event listeners
  * socket should be set up in listening state
+ * Note that this sets up the SIGPIPE signal to be ignored.
+ *
+ * Returns 0 on success, -1 on error
  */
-void TcpBus_init(EV_P_ int socket);
+int TcpBus_init(EV_P_ int socket);
+
+/* shut down the bus
+ * all open connections will be closed
+ * Note that the listening socket will NOT be closed
+ */
+void TcpBus_terminate();
 
 /* Callback function prototypes
  */

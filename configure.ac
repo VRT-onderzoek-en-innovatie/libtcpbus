@@ -21,6 +21,10 @@ AC_CONFIG_HEADERS([config.h])
 
 # Check for options.
 ####################
+AC_ARG_ENABLE([ipv6],
+	AC_HELP_STRING([--disable-ipv6],[Disable IPv6 support]),
+	[enable_ipv6=$enableval],[enable_ipv6=yes])
+AS_IF([test x$enable_ipv6 == xyes], [AC_DEFINE([ENABLE_IPV6],[1],[Define to 1 to enable IPv6 support])] )
 
 # Checks for programs.
 ######################
@@ -64,5 +68,8 @@ ${PACKAGE_NAME} version ${PACKAGE_VERSION} (${PACKAGE_GITREVISION})
  Prefix:       '${prefix}'
  C Compiler:   '${CC} ${CFLAGS} ${CPPFLAGS}'
  Libraries:    '${LIBS}'
+
+ Configured with:
+  IPv6: $enable_ipv6
 --------------------------------------------------------------------------------
 "
