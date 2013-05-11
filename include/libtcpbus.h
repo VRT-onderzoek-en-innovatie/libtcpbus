@@ -2,6 +2,7 @@
 #define __LIBTCPBUS_H__
 
 #include <ev.h>
+#include <sys/socket.h>
 
 #ifdef __cplusplus
 extern "C"{
@@ -21,29 +22,43 @@ int TcpBus_init(EV_P_ int socket);
  */
 void TcpBus_terminate();
 
-
-/* Callback function prototypes
+/* Send data to the bus
+ * returns -1 on failure
  */
-typedef void (*TcpBus_rx_callback_t)(const char *data, size_t len);
+int TcpBus_send(const char *data, size_t len);
 
-/* Register an (additional) callback function to be called when receiving
- * data.
+
+/* Callbacks
+ ************/
+
+typedef void (*TcpBus_callback_rx_t)(const char *data, size_t len);
+typedef void (*TcpBus_callback_newcon_t)(const struct sockaddr *addr,
+                                         socklen_t addr_len);
+typedef void (*TcpBus_callback_error_t)(const struct sockaddr *addr,
+                                        socklen_t addr_len,
+                                        int errno);
+typedef void (*TcpBus_callback_disconnect_t)(const struct sockaddr *addr,
+                                             socklen_t addr_len);
+
+/* Register functions
+ * add the given callback function to the list of callbacks
  *
  * Returns 0 on success, -1 on failure
  */
-int TcpBus_rx_callback_add(TcpBus_rx_callback_t f);
+int TcpBus_callback_rx_add(TcpBus_callback_rx_t f);
+int TcpBus_callback_newcon_add(TcpBus_callback_newcon_t f);
+int TcpBus_callback_eror_add(TcpBus_callback_error_t f);
+int TcpBus_callback_disconnect_add(TcpBus_callback_disconnect_t f);
 
 /* Remove a previously added callback
  *
  * Returns 0 on success
  */
-int TcpBus_rx_callback_remove(TcpBus_rx_callback_t f);
+int TcpBus_callback_rx_remove(TcpBus_callback_rx_t f);
+int TcpBus_callback_newcon_remove(TcpBus_callback_newcon_t f);
+int TcpBus_callback_eror_remove(TcpBus_callback_error_t f);
+int TcpBus_callback_disconnect_remove(TcpBus_callback_disconnect_t f);
 
-
-/* Send data to the bus
- * returns -1 on failure
- */
-int TcpBus_send(const char *data, size_t len);
 
 
 #ifdef __cplusplus

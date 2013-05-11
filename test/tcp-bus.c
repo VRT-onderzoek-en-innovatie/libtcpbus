@@ -12,17 +12,17 @@ int s_listen;
 
 
 void received_sigint(EV_P_ ev_signal *w, int revents) {
-	LogInfo("Received SIGINT, exiting");
+	fprintf(stderr, "Received SIGINT, exiting");
 	ev_break(EV_A_ EVUNLOOP_ALL);
 }
 void received_sigterm(EV_P_ ev_signal *w, int revents) {
-	LogInfo("Received SIGTERM, exiting");
+	fprintf(stderr, "Received SIGTERM, exiting");
 	ev_break(EV_A_ EVUNLOOP_ALL);
 }
 
 
 int main(int argc, char* argv[]) {
-	LogInfo("%s version %s (%s) starting up", PACKAGE_NAME, PACKAGE_VERSION, PACKAGE_GITREVISION);
+	fprintf(stderr, "%s version %s (%s) starting up", PACKAGE_NAME, PACKAGE_VERSION, PACKAGE_GITREVISION);
 
 	{ // Open listening socket
 		struct sockaddr_in addr;
@@ -36,10 +36,10 @@ int main(int argc, char* argv[]) {
 		addr.sin_port = htons(10000);
 
 		rv = bind(s_listen, &addr, addr_len);
-		LogInfo("bind(): %d", rv);
+		fprintf(stderr, "bind(): %d", rv);
 		rv = listen(s_listen, MAX_CONN_BACKLOG);
-		LogInfo("listen(): %d", rv);
-		LogInfo("Listening on [127.0.0.1]:10000");
+		fprintf(stderr, "listen(): %d", rv);
+		fprintf(stderr, "Listening on [127.0.0.1]:10000");
 	}
 
 	{
@@ -52,12 +52,12 @@ int main(int argc, char* argv[]) {
 
 		TcpBus_init(EV_DEFAULT_ s_listen);
 
-		LogInfo("Setup done, starting event loop");
+		fprintf(stderr, "Setup done, starting event loop");
 
 		ev_run(EV_DEFAULT_ 0);
 	}
 
-	LogInfo("Cleaning up");
+	fprintf(stderr, "Cleaning up");
 
 	return 0;
 }

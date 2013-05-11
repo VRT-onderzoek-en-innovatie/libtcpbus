@@ -3,10 +3,8 @@
 #include "../include/libtcpbus.h"
 
 #include "list.h"
-#include <sys/socket.h>
 #include <errno.h>
 #include <string.h>
-#include <liblog.h>
 #include <fcntl.h>
 #include <arpa/inet.h>
 #include <stdlib.h>
@@ -19,81 +17,87 @@ EV_P;
 struct connection {
 	struct list_head list;
 	int socket;
-	char *addr_str;
+	struct sockaddr_storage addr;
+	socklen_t addr_len;
 	ev_io read_ready;
 };
 LIST_HEAD(connections);
 
-struct callback_rx_t {
-	struct list_head list;
-	TcpBus_rx_callback_t f;
-};
-LIST_HEAD(callback_rx);
 
+#define callback_list(type) \
+	struct callback_ ## type ## _t { \
+		struct list_head list; \
+		TcpBus_callback_ ## type ## _t f; \
+	}; \
+	LIST_HEAD(callback_ ## type);
+callback_list(rx);
+callback_list(newcon);
+callback_list(error);
+callback_list(disconnect);
 
-static void insert_connection(struct connection *new) {
-	list_add(&new->list, &connections);
+#define callback_add_remove(type) \
+	int TcpBus_callback_ ## type ## _add(TcpBus_callback_ ## type ## _t f) { \
+		struct callback_ ## type ## _t *cb; \
+		\
+		cb = malloc(sizeof *cb); \
+		if( cb == NULL ) return -1; \
+		cb->f = f; \
+		\
+		list_add(&cb->list, &callback_ ## type); \
+		return 0; \
+	} \
+	int TcpBus_callback_ ## type ## _remove(TcpBus_callback_ ## type ## _t f) { \
+		struct callback_ ## type ## _t *i, *tmp; \
+		list_for_each_entry_safe(i, tmp, &callback_ ## type, list) { \
+			if( i->f == f ) { \
+				list_del(&i->list); \
+				free(i); \
+			} \
+		} \
+		return 0; \
+	}
+callback_add_remove(rx)
+callback_add_remove(newcon)
+callback_add_remove(error)
+callback_add_remove(disconnect)
+
+inline void callback_rx_call(const char *buf, size_t rx_len) {
+	struct callback_rx_t *i;
+	list_for_each_entry(i, &callback_rx, list) {
+		i->f(buf, rx_len);
+	}
 }
+
+inline void callback_newcon_call(const struct sockaddr_storage *addr, socklen_t addr_len) {
+	struct callback_newcon_t *i;
+	list_for_each_entry(i, &callback_newcon, list) {
+		i->f((struct sockaddr*)addr, addr_len);
+	}
+}
+
+inline void callback_error_call(const struct sockaddr_storage *addr, socklen_t addr_len, int err) {
+	struct callback_error_t *i;
+	list_for_each_entry(i, &callback_error, list) {
+		i->f((struct sockaddr*)addr, addr_len, err);
+	}
+}
+
+inline void callback_disconnect_call(const struct sockaddr_storage *addr, socklen_t addr_len) {
+	struct callback_disconnect_t *i;
+	list_for_each_entry(i, &callback_disconnect, list) {
+		i->f((struct sockaddr*)addr, addr_len);
+	}
+}
+
+
 
 static void kill_connection(struct connection *c) {
 	ev_io_stop(EV_A_ &c->read_ready);
 	close(c->socket);
-	free(c->addr_str);
 	list_del(&c->list);
 	free(c);
 }
 
-
-
-static void stringify_sockaddr(char *out, size_t out_len,
-                               const struct sockaddr *sa, socklen_t sa_len) {
-	char *p = out;
-
-	switch(sa->sa_family) {
-	case AF_INET:
-		*(p++) = '['; out_len--;
-
-		if( inet_ntop(AF_INET, &((struct sockaddr_in*)sa)->sin_addr, p, out_len) == NULL ) {
-			strcpy(out, "inet_ntop() failed"); // Fits in 1+15+1+1+5+\0 = 23+\0
-			return;
-		}
-
-		out_len -= strlen(p); p += strlen(p);
-
-		*(p++) = ']'; out_len--;
-		*(p++) = ':'; out_len--;
-
-		if( -1 == snprintf(p, out_len, "%d", ntohs( ((struct sockaddr_in*)sa)->sin_port )) ) {
-			strcpy(out, "snprintf() failed"); // Fits in 1+15+1+1+5+\0 = 23+\0
-			return;
-		}
-		break;
-
-#ifdef ENABLE_IPV6
-	case AF_INET6:
-		*(p++) = '['; out_len--;
-
-		if( inet_ntop(AF_INET6, &((struct sockaddr_in6*)sa)->sin6_addr, p, out_len) == NULL ) {
-			strcpy(out, "inet_ntop() failed"); // Fits in 1+15+1+1+5+\0 = 23+\0
-			return;
-		}
-
-		out_len -= strlen(p); p += strlen(p);
-
-		*(p++) = ']'; out_len--;
-		*(p++) = ':'; out_len--;
-
-		if( -1 == snprintf(p, out_len, "%d", ntohs( ((struct sockaddr_in6*)sa)->sin6_port )) ) {
-			strcpy(out, "snprintf() failed"); // Fits in 1+15+1+1+5+\0 = 23+\0
-			return;
-		}
-		break;
-#endif
-
-	default:
-		strcpy(out, "Unknown address family"); // Fits in 1+15+1+1+5+\0 = 23+\0
-	}
-}
 
 static void send_data(const char *data, size_t len, struct connection *skip) {
 	struct connection *i, *tmp;
@@ -104,7 +108,7 @@ static void send_data(const char *data, size_t len, struct connection *skip) {
 
 		rv = send(i->socket, data, len, 0);
 		if( rv == -1 ) {
-			LogError("%s : could not send(): %s", i->addr_str, strerror(errno));
+			callback_error_call(&i->addr, i->addr_len, errno);
 			kill_connection(i); // Removes from list
 		}
 	}
@@ -114,69 +118,51 @@ static void ready_to_read(EV_P_ ev_io *w, int revents) {
 	struct connection *con = w->data;
 	char buf[4096];
 	ssize_t rx_len;
-	struct callback_rx_t *i;
 
 	rx_len = recv(con->socket, buf, sizeof(buf), 0);
 	if( rx_len == -1 ) {
-		LogError("%s : could not recv() : %s", con->addr_str, strerror(errno));
+		callback_error_call(&con->addr, con->addr_len, errno);
 		kill_connection(con);
 		return;
 	}
 	if( rx_len == 0 ) { // EOF
-		LogInfo("%s : disconnect", con->addr_str);
+		callback_disconnect_call(&con->addr, con->addr_len);
 		kill_connection(con);
 		return;
 	}
 
 	send_data(buf, rx_len, con);
-	list_for_each_entry(i, &callback_rx, list) {
-		i->f(buf, rx_len);
-	}
+	callback_rx_call(buf, rx_len);
 }
 
 static void incomming_connection(EV_P_ ev_io *w, int revents) {
 	struct connection *con;
-	struct sockaddr_storage addr;
-	socklen_t addr_len = sizeof(addr);
 	int flags, rv;
 
 	con = malloc(sizeof(struct connection));
 	if( con == NULL ) {
-		LogError("Could not malloc()");
+		callback_error_call(NULL, 0, ENOMEM);
 		return;
 	}
 	INIT_LIST_HEAD(&con->list);
+	con->addr_len = sizeof(con->addr);
 
-#ifdef ENABLE_IPV6
-	size_t addr_str_len = 1+INET6_ADDRSTRLEN+1+1+5; // [::]:12345 (terminating \0 included in constant)
-#else
-	size_t addr_str_len = 1+INET_ADDRSTRLEN+1+1+5; // [0.0.0.0]:12345 (terminating \0 included in constant)
-#endif
-	con->addr_str = malloc(addr_str_len);
-	if( con->addr_str == NULL ) {
-		LogError("Could not malloc()");
-		return;
-	}
-
-	con->socket = accept(w->fd, (struct sockaddr*)&addr, &addr_len);
+	con->socket = accept(w->fd, (struct sockaddr*)&con->addr, &con->addr_len);
 	if( con->socket == -1 ) {
-		LogError("Could not accept(): %s", strerror(errno));
-		free(con->addr_str);
+		callback_error_call(NULL, 0, errno);
 		return;
 	}
 
-	stringify_sockaddr(con->addr_str, addr_str_len, (struct sockaddr*)&addr, addr_len);
-
-	LogInfo("%s : Connection opened", con->addr_str);
+	callback_newcon_call(&con->addr, con->addr_len);
 
 	flags = fcntl(con->socket, F_GETFL);
 	if( flags == -1 ) {
-		LogError("%s : fcntl(, F_GETFL) failed: %s", con->addr_str, strerror(errno));
+		callback_error_call(&con->addr, con->addr_len, errno);
 		goto cleanup;
 	}
 	rv = fcntl(con->socket, F_SETFL, flags | O_NONBLOCK);
 	if( rv == -1 ) {
-		LogError("%s : fcntl(, F_SETFL) failed: %s", con->addr_str, strerror(errno));
+		callback_error_call(&con->addr, con->addr_len, errno);
 		goto cleanup;
 	}
 
@@ -184,12 +170,12 @@ static void incomming_connection(EV_P_ ev_io *w, int revents) {
 	con->read_ready.data = con; // Could be replaced with offset_of magic
 	ev_io_start(EV_A_ &con->read_ready);
 
-	insert_connection(con);
+	list_add(&con->list, &connections);
 	return;
 
 cleanup:
 	close(con->socket);
-	free(con->addr_str);
+	free(con);
 }
 
 int TcpBus_init(
@@ -202,12 +188,12 @@ int TcpBus_init(
 	loop = init_loop;
 
 	if( sigaction(SIGPIPE, NULL, &act) == -1) {
-		LogError("Can not get signal handler for SIGPIPE");
+		callback_error_call(NULL, 0, errno);
 		return -1;
 	}
 	act.sa_handler = SIG_IGN; // Ignore SIGPIPE (we'll handle the write()-error)
 	if( sigaction(SIGPIPE, &act, NULL) == -1 ) {
-		LogError("Can not set signal handler for SIGPIPE");
+		callback_error_call(NULL, 0, errno);
 		return -1;
 	}
 
@@ -226,27 +212,8 @@ void TcpBus_terminate() {
 	}
 }
 
-int TcpBus_rx_callback_add(TcpBus_rx_callback_t f) {
-	struct callback_rx_t *cb;
 
-	cb = malloc(sizeof(struct callback_rx_t));
-	if( cb == NULL ) return -1;
-	cb->f = f;
 
-	list_add(&cb->list, &callback_rx);
-	return 0;
-}
-
-int TcpBus_rx_callback_remove(TcpBus_rx_callback_t f) {
-	struct callback_rx_t *i, *tmp;
-	list_for_each_entry_safe(i, tmp, &callback_rx, list) {
-		if( i->f == f ) {
-			list_del(&i->list);
-			free(i);
-		}
-	}
-	return 0;
-}
 
 int TcpBus_send(const char *data, size_t len) {
 	send_data(data, len, NULL);
