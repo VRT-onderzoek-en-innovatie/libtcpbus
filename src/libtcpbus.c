@@ -14,7 +14,6 @@
 #include <unistd.h>
 
 ev_io e_listen;
-TcpBus_rx_callback_t rx_callback_f = NULL;
 EV_P;
 
 struct connection {
@@ -23,11 +22,17 @@ struct connection {
 	char *addr_str;
 	ev_io read_ready;
 };
-
 LIST_HEAD(connections);
 
+struct callback_rx_t {
+	struct list_head list;
+	TcpBus_rx_callback_t f;
+};
+LIST_HEAD(callback_rx);
+
+
 static void insert_connection(struct connection *new) {
-	list_add_tail(&new->list, &connections);
+	list_add(&new->list, &connections);
 }
 
 static void kill_connection(struct connection *c) {
@@ -109,6 +114,7 @@ static void ready_to_read(EV_P_ ev_io *w, int revents) {
 	struct connection *con = w->data;
 	char buf[4096];
 	ssize_t rx_len;
+	struct callback_rx_t *i;
 
 	rx_len = recv(con->socket, buf, sizeof(buf), 0);
 	if( rx_len == -1 ) {
@@ -123,7 +129,9 @@ static void ready_to_read(EV_P_ ev_io *w, int revents) {
 	}
 
 	send_data(buf, rx_len, con);
-	if( rx_callback_f ) rx_callback_f(buf, rx_len);
+	list_for_each_entry(i, &callback_rx, list) {
+		i->f(buf, rx_len);
+	}
 }
 
 static void incomming_connection(EV_P_ ev_io *w, int revents) {
@@ -219,13 +227,24 @@ void TcpBus_terminate() {
 }
 
 int TcpBus_rx_callback_add(TcpBus_rx_callback_t f) {
-	if( rx_callback_f != NULL ) return -1;
-	rx_callback_f = f;
+	struct callback_rx_t *cb;
+
+	cb = malloc(sizeof(struct callback_rx_t));
+	if( cb == NULL ) return -1;
+	cb->f = f;
+
+	list_add(&cb->list, &callback_rx);
 	return 0;
 }
 
 int TcpBus_rx_callback_remove(TcpBus_rx_callback_t f) {
-	if( rx_callback_f == f ) rx_callback_f = NULL;
+	struct callback_rx_t *i, *tmp;
+	list_for_each_entry_safe(i, tmp, &callback_rx, list) {
+		if( i->f == f ) {
+			list_del(&i->list);
+			free(i);
+		}
+	}
 	return 0;
 }
 
