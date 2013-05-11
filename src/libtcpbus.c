@@ -1,6 +1,8 @@
 #include "../config.h"
 
 #include "../include/libtcpbus.h"
+
+#include "list.h"
 #include <sys/socket.h>
 #include <errno.h>
 #include <string.h>
@@ -16,54 +18,24 @@ TcpBus_rx_callback_t rx_callback_f = NULL;
 EV_P;
 
 struct connection {
-	struct connection *next;
+	struct list_head list;
 	int socket;
 	char *addr_str;
 	ev_io read_ready;
 };
 
-struct connection *connections = NULL;
+LIST_HEAD(connections);
 
 static void insert_connection(struct connection *new) {
-	struct connection *list = connections;
-
-	new->next = NULL;
-
-	if( connections == NULL ) {
-		connections = new;
-		return;
-	}
-
-	while( list->next != NULL ) { list = list->next; }
-
-	list->next = new;
-}
-
-static void remove_connection(struct connection *to_remove) {
-	struct connection *list = connections;
-	if( connections == NULL ) return;
-
-	if( connections == to_remove ) { // first element
-		connections = to_remove->next;
-		to_remove->next = NULL;
-		return;
-	}
-
-	do {
-		if( list->next == to_remove ) {
-			list->next = to_remove->next;
-			to_remove->next = NULL;
-			return;
-		}
-		list = list->next;
-	} while( list->next != NULL );
+	list_add_tail(&new->list, &connections);
 }
 
 static void kill_connection(struct connection *c) {
 	ev_io_stop(EV_A_ &c->read_ready);
 	close(c->socket);
 	free(c->addr_str);
-	remove_connection(c);
+	list_del(&c->list);
+	free(c);
 }
 
 
@@ -119,18 +91,16 @@ static void stringify_sockaddr(char *out, size_t out_len,
 }
 
 static void send_data(const char *data, size_t len, struct connection *skip) {
-	struct connection *list;
-	for(list = connections; list != NULL; list = list->next ) {
+	struct connection *i, *tmp;
+	list_for_each_entry_safe(i, tmp, &connections, list) {
 		int rv;
-restart_for:
-		if( list == skip ) continue; // Don't loop to self
-		rv = send(list->socket, data, len, 0);
+
+		if( i == skip ) continue; // Don't loop to self
+
+		rv = send(i->socket, data, len, 0);
 		if( rv == -1 ) {
-			struct connection *temp = list->next;
-			LogError("%s : could not send(): %s", list->addr_str, strerror(errno));
-			kill_connection(list); // Removes from list
-			list = temp; // Restore iterator to correct place
-			goto restart_for; // continue without going to next
+			LogError("%s : could not send(): %s", i->addr_str, strerror(errno));
+			kill_connection(i); // Removes from list
 		}
 	}
 }
@@ -162,11 +132,12 @@ static void incomming_connection(EV_P_ ev_io *w, int revents) {
 	socklen_t addr_len = sizeof(addr);
 	int flags, rv;
 
-	con = malloc(sizeof *con);
+	con = malloc(sizeof(struct connection));
 	if( con == NULL ) {
 		LogError("Could not malloc()");
 		return;
 	}
+	INIT_LIST_HEAD(&con->list);
 
 #ifdef ENABLE_IPV6
 	size_t addr_str_len = 1+INET6_ADDRSTRLEN+1+1+5; // [::]:12345 (terminating \0 included in constant)
@@ -238,10 +209,12 @@ int TcpBus_init(
 }
 
 void TcpBus_terminate() {
+	struct connection *i, *tmp;
+
 	ev_io_stop(EV_A_ &e_listen);
 
-	while( connections != NULL ) {
-		kill_connection(connections);
+	list_for_each_entry_safe(i, tmp, &connections, list) {
+		kill_connection(i);
 	}
 }
 

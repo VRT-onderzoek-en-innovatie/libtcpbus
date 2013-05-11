@@ -26,6 +26,7 @@ int main(int argc, char* argv[]) {
 
 	{ // Open listening socket
 		struct sockaddr_in addr;
+		int rv;
 		socklen_t addr_len = sizeof(addr);
 
 		s_listen = socket(AF_INET, SOCK_STREAM, 0);
@@ -34,8 +35,10 @@ int main(int argc, char* argv[]) {
 		addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 		addr.sin_port = htons(10000);
 
-		bind(s_listen, &addr, addr_len);
-		listen(s_listen, MAX_CONN_BACKLOG);
+		rv = bind(s_listen, &addr, addr_len);
+		LogInfo("bind(): %d", rv);
+		rv = listen(s_listen, MAX_CONN_BACKLOG);
+		LogInfo("listen(): %d", rv);
 		LogInfo("Listening on [127.0.0.1]:10000");
 	}
 
