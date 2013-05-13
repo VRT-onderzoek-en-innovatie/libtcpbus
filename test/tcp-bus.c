@@ -3,8 +3,7 @@
 
 #include <netinet/in.h>
 #include <ev.h>
-
-#include <liblog.h>
+#include <stdio.h>
 
 static const int MAX_CONN_BACKLOG = 32;
 
@@ -22,6 +21,8 @@ void received_sigterm(EV_P_ ev_signal *w, int revents) {
 
 
 int main(int argc, char* argv[]) {
+	struct TcpBus_bus *bus;
+
 	fprintf(stderr, "%s version %s (%s) starting up", PACKAGE_NAME, PACKAGE_VERSION, PACKAGE_GITREVISION);
 
 	{ // Open listening socket
@@ -50,12 +51,14 @@ int main(int argc, char* argv[]) {
 		ev_signal_init( &ev_sigterm_watcher, received_sigterm, SIGTERM);
 		ev_signal_start( EV_DEFAULT_ &ev_sigterm_watcher);
 
-		TcpBus_init(EV_DEFAULT_ s_listen);
+		bus = TcpBus_init(EV_DEFAULT_ s_listen);
 
 		fprintf(stderr, "Setup done, starting event loop");
 
 		ev_run(EV_DEFAULT_ 0);
 	}
+
+	TcpBus_terminate(bus);
 
 	fprintf(stderr, "Cleaning up");
 
