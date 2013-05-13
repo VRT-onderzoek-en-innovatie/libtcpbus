@@ -11,19 +11,34 @@ int s_listen;
 
 
 void received_sigint(EV_P_ ev_signal *w, int revents) {
-	fprintf(stderr, "Received SIGINT, exiting");
+	fprintf(stderr, "Received SIGINT, exiting\n");
 	ev_break(EV_A_ EVUNLOOP_ALL);
 }
 void received_sigterm(EV_P_ ev_signal *w, int revents) {
-	fprintf(stderr, "Received SIGTERM, exiting");
+	fprintf(stderr, "Received SIGTERM, exiting\n");
 	ev_break(EV_A_ EVUNLOOP_ALL);
+}
+
+void received_newcon(const struct TcpBus_bus *bus,
+                     const struct sockaddr *addr, socklen_t addr_len) {
+	fprintf(stderr, "new connection\n");
+}
+
+void received_error(const struct TcpBus_bus *bus,
+                    const struct sockaddr *addr, socklen_t addr_len, int err) {
+	fprintf(stderr, "error: %s\n", strerror(err));
+}
+
+void received_disconnect(const struct TcpBus_bus *bus,
+                         const struct sockaddr *addr, socklen_t addr_len) {
+	fprintf(stderr, "disconnect\n");
 }
 
 
 int main(int argc, char* argv[]) {
 	struct TcpBus_bus *bus;
 
-	fprintf(stderr, "%s version %s (%s) starting up", PACKAGE_NAME, PACKAGE_VERSION, PACKAGE_GITREVISION);
+	fprintf(stderr, "%s version %s (%s) starting up\n", PACKAGE_NAME, PACKAGE_VERSION, PACKAGE_GITREVISION);
 
 	{ // Open listening socket
 		struct sockaddr_in addr;
@@ -37,10 +52,10 @@ int main(int argc, char* argv[]) {
 		addr.sin_port = htons(10000);
 
 		rv = bind(s_listen, &addr, addr_len);
-		fprintf(stderr, "bind(): %d", rv);
+		fprintf(stderr, "bind(): %d\n", rv);
 		rv = listen(s_listen, MAX_CONN_BACKLOG);
-		fprintf(stderr, "listen(): %d", rv);
-		fprintf(stderr, "Listening on [127.0.0.1]:10000");
+		fprintf(stderr, "listen(): %d\n", rv);
+		fprintf(stderr, "Listening on [127.0.0.1]:10000\n");
 	}
 
 	{
@@ -52,15 +67,18 @@ int main(int argc, char* argv[]) {
 		ev_signal_start( EV_DEFAULT_ &ev_sigterm_watcher);
 
 		bus = TcpBus_init(EV_DEFAULT_ s_listen);
+		TcpBus_callback_newcon_add(bus, received_newcon);
+		TcpBus_callback_error_add(bus, received_error);
+		TcpBus_callback_disconnect_add(bus, received_disconnect);
 
-		fprintf(stderr, "Setup done, starting event loop");
+		fprintf(stderr, "Setup done, starting event loop\n");
 
 		ev_run(EV_DEFAULT_ 0);
 	}
 
 	TcpBus_terminate(bus);
 
-	fprintf(stderr, "Cleaning up");
+	fprintf(stderr, "Cleaning up\n");
 
 	return 0;
 }

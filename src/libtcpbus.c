@@ -213,12 +213,19 @@ struct TcpBus_bus *TcpBus_init(
 	bus = malloc(sizeof(*bus));
 	if( bus == NULL ) return NULL;
 
+	ev_io_init(&bus->e_listen, incomming_connection, socket, EV_READ);
+	bus->e_listen.data = bus; // Could be replaced with offset_of magic
+
 #ifdef EV_MULTIPLICITY
 	bus->loop = init_loop;
 #endif
 
-	ev_io_init(&bus->e_listen, incomming_connection, socket, EV_READ);
-	bus->e_listen.data = bus; // Could be replaced with offset_of magic
+	INIT_LIST_HEAD(&bus->connections);
+	INIT_LIST_HEAD(&bus->callback_rx);
+	INIT_LIST_HEAD(&bus->callback_newcon);
+	INIT_LIST_HEAD(&bus->callback_error);
+	INIT_LIST_HEAD(&bus->callback_disconnect);
+
 	ev_io_start(PBUS_EV_A_ &bus->e_listen);
 
 	return bus;
