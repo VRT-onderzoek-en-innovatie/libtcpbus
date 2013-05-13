@@ -55,7 +55,7 @@ struct TcpBus_bus {
 	                                     TcpBus_callback_ ## type ## _t f) { \
 		struct callback_ ## type ## _t *cb; \
 		\
-		cb = malloc(sizeof *cb); \
+		cb = malloc(sizeof *cb); /* free is in _remove() */ \
 		if( cb == NULL ) return -1; \
 		cb->f = f; \
 		\
@@ -167,7 +167,7 @@ static void incomming_connection(EV_P_ ev_io *w, int revents) {
 	struct connection *con;
 	int flags, rv;
 
-	con = malloc(sizeof(struct connection));
+	con = malloc(sizeof(struct connection)); // free() is in kill_connection()
 	if( con == NULL ) {
 		callback_error_call(bus, NULL, 0, ENOMEM);
 		return;
@@ -215,7 +215,7 @@ struct TcpBus_bus *TcpBus_init(
 	struct TcpBus_bus *bus;
 	struct sigaction act;
 
-	bus = malloc(sizeof(*bus));
+	bus = malloc(sizeof(*bus)); // free() is in TcpBus_terminate()
 	if( bus == NULL ) return NULL;
 
 	ev_io_init(&bus->e_listen, incomming_connection, socket, EV_READ);
