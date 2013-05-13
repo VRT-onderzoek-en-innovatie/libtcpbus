@@ -59,6 +59,19 @@ int main(int argc, char* argv[]) {
 	}
 
 	{
+		struct sigaction act;
+		if( sigaction(SIGPIPE, NULL, &act) == -1) {
+			   callback_error_call(NULL, 0, errno);
+			   return -1;
+		}
+		act.sa_handler = SIG_IGN; // Ignore SIGPIPE (we'll handle the write()-error)
+		if( sigaction(SIGPIPE, &act, NULL) == -1 ) {
+			   callback_error_call(NULL, 0, errno);
+			   return -1;
+		}
+	}
+
+	{
 		ev_signal ev_sigint_watcher;
 		ev_signal_init( &ev_sigint_watcher, received_sigint, SIGINT);
 		ev_signal_start( EV_DEFAULT_ &ev_sigint_watcher);

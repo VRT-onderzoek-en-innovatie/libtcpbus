@@ -241,6 +241,8 @@ void TcpBus_terminate(struct TcpBus_bus *bus) {
 	list_for_each_entry_safe(i, tmp, &bus->connections, list) {
 		kill_connection(i);
 	}
+
+	free(bus);
 }
 
 
