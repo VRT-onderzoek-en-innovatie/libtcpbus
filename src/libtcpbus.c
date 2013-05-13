@@ -61,28 +61,28 @@ callback_add_remove(newcon)
 callback_add_remove(error)
 callback_add_remove(disconnect)
 
-inline void callback_rx_call(const char *buf, size_t rx_len) {
+static inline void callback_rx_call(const char *buf, size_t rx_len) {
 	struct callback_rx_t *i;
 	list_for_each_entry(i, &callback_rx, list) {
 		i->f(buf, rx_len);
 	}
 }
 
-inline void callback_newcon_call(const struct sockaddr_storage *addr, socklen_t addr_len) {
+static inline void callback_newcon_call(const struct sockaddr_storage *addr, socklen_t addr_len) {
 	struct callback_newcon_t *i;
 	list_for_each_entry(i, &callback_newcon, list) {
 		i->f((struct sockaddr*)addr, addr_len);
 	}
 }
 
-inline void callback_error_call(const struct sockaddr_storage *addr, socklen_t addr_len, int err) {
+static inline void callback_error_call(const struct sockaddr_storage *addr, socklen_t addr_len, int err) {
 	struct callback_error_t *i;
 	list_for_each_entry(i, &callback_error, list) {
 		i->f((struct sockaddr*)addr, addr_len, err);
 	}
 }
 
-inline void callback_disconnect_call(const struct sockaddr_storage *addr, socklen_t addr_len) {
+static inline void callback_disconnect_call(const struct sockaddr_storage *addr, socklen_t addr_len) {
 	struct callback_disconnect_t *i;
 	list_for_each_entry(i, &callback_disconnect, list) {
 		i->f((struct sockaddr*)addr, addr_len);
