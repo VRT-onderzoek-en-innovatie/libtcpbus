@@ -47,7 +47,7 @@ typedef void (*TcpBus_callback_disconnect_t)(const struct sockaddr *addr,
  */
 int TcpBus_callback_rx_add(TcpBus_callback_rx_t f);
 int TcpBus_callback_newcon_add(TcpBus_callback_newcon_t f);
-int TcpBus_callback_eror_add(TcpBus_callback_error_t f);
+int TcpBus_callback_error_add(TcpBus_callback_error_t f);
 int TcpBus_callback_disconnect_add(TcpBus_callback_disconnect_t f);
 
 /* Remove a previously added callback
