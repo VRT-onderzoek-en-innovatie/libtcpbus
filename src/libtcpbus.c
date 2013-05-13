@@ -61,14 +61,16 @@ struct TcpBus_bus {
 	} \
 	int TcpBus_callback_ ## type ## _remove(struct TcpBus_bus *bus, \
 	                                        TcpBus_callback_ ## type ## _t f) { \
+		int count = 0; \
 		struct callback_ ## type ## _t *i, *tmp; \
 		list_for_each_entry_safe(i, tmp, &bus->callback_ ## type, list) { \
 			if( i->f == f ) { \
 				list_del(&i->list); \
 				free(i); \
+				count++; \
 			} \
 		} \
-		return 0; \
+		return count; \
 	}
 callback_add_remove(rx)
 callback_add_remove(newcon)
