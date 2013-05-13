@@ -1,6 +1,6 @@
-#include "../config.h"
-
 #include "../include/libtcpbus.h"
+
+#include "../config.h"
 
 #include "list.h"
 #include <errno.h>
@@ -19,11 +19,6 @@ struct connection {
 	socklen_t addr_len;
 	ev_io read_ready;
 };
-#ifdef EV_MULTIPLICITY
-#define PBUS_EV_A_ bus->loop,
-#else
-#define PBUS_EV_A_
-#endif
 
 
 #define callback_list(type) \
@@ -36,6 +31,7 @@ callback_list(newcon);
 callback_list(error);
 callback_list(disconnect);
 
+
 struct TcpBus_bus {
 	ev_io e_listen;
 	EV_P;
@@ -45,6 +41,13 @@ struct TcpBus_bus {
 	struct list_head callback_error;
 	struct list_head callback_disconnect;
 };
+#ifdef EV_MULTIPLICITY
+#define PBUS_EV_A bus->loop
+#define PBUS_EV_A_ PBUS_EV_A ,
+#else
+#define PBUS_EV_A
+#define PBUS_EV_A_
+#endif
 
 
 #define callback_add_remove(type) \
