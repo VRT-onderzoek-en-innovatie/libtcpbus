@@ -36,7 +36,7 @@ typedef void (*TcpBus_callback_newcon_t)(const struct sockaddr *addr,
                                          socklen_t addr_len);
 typedef void (*TcpBus_callback_error_t)(const struct sockaddr *addr,
                                         socklen_t addr_len,
-                                        int errno);
+                                        int err_no);
 typedef void (*TcpBus_callback_disconnect_t)(const struct sockaddr *addr,
                                              socklen_t addr_len);
 
