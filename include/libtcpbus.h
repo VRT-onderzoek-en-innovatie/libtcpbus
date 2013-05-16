@@ -4,6 +4,11 @@
 #include <ev.h>
 #include <sys/socket.h>
 
+#ifndef __GNUC__
+#  define  __attribute__(x)  /*NOTHING*/
+#endif
+
+
 #ifdef __cplusplus
 extern "C"{
 #endif
@@ -24,7 +29,8 @@ struct TcpBus_bus;
  * Note that you should probably set SIGPIPE to be ignored if you want to
  * catch overflows on the Tx buffer.
  */
-struct TcpBus_bus *TcpBus_init(EV_P_ int socket);
+struct TcpBus_bus *TcpBus_init(EV_P_ int socket)
+                              __attribute__((__malloc__,warn_unused_result));
 
 
 /* shut down the bus
@@ -35,7 +41,7 @@ struct TcpBus_bus *TcpBus_init(EV_P_ int socket);
  *
  * Note that the listening socket will NOT be closed
  */
-void TcpBus_terminate(struct TcpBus_bus *bus);
+void TcpBus_terminate(struct TcpBus_bus *bus) __attribute__((nonnull(1)));
 
 
 /* Send data to the bus
@@ -49,7 +55,8 @@ void TcpBus_terminate(struct TcpBus_bus *bus);
  * bus, instead of holding back the whole bus to wait for them. (this may
  * become a setting in the future)
  */
-int TcpBus_send(const struct TcpBus_bus *bus, const char *data, size_t len);
+int TcpBus_send(const struct TcpBus_bus *bus, const char *data, size_t len)
+               __attribute__((nonnull(1,2)));
 
 
 /* Callbacks
@@ -81,13 +88,17 @@ typedef void (*TcpBus_callback_disconnect_t)(const struct TcpBus_bus *bus,
  * twice (or more).
  */
 int TcpBus_callback_rx_add(struct TcpBus_bus *bus,
-                           TcpBus_callback_rx_t f);
+                           TcpBus_callback_rx_t f)
+                          __attribute__((nonnull(1,2)));
 int TcpBus_callback_newcon_add(struct TcpBus_bus *bus,
-                               TcpBus_callback_newcon_t f);
+                               TcpBus_callback_newcon_t f)
+                              __attribute__((nonnull(1,2)));
 int TcpBus_callback_error_add(struct TcpBus_bus *bus,
-                              TcpBus_callback_error_t f);
+                              TcpBus_callback_error_t f)
+                             __attribute__((nonnull(1,2)));
 int TcpBus_callback_disconnect_add(struct TcpBus_bus *bus,
-                                   TcpBus_callback_disconnect_t f);
+                                   TcpBus_callback_disconnect_t f)
+                                  __attribute__((nonnull(1,2)));
 
 
 /* Remove a previously added callback
@@ -98,13 +109,17 @@ int TcpBus_callback_disconnect_add(struct TcpBus_bus *bus,
  * or -1 on error.
  */
 int TcpBus_callback_rx_remove(struct TcpBus_bus *bus,
-                              TcpBus_callback_rx_t f);
+                              TcpBus_callback_rx_t f)
+                             __attribute__((nonnull(1,2)));
 int TcpBus_callback_newcon_remove(struct TcpBus_bus *bus,
-                                  TcpBus_callback_newcon_t f);
+                                  TcpBus_callback_newcon_t f)
+                                 __attribute__((nonnull(1,2)));
 int TcpBus_callback_eror_remove(struct TcpBus_bus *bus,
-                                TcpBus_callback_error_t f);
+                                TcpBus_callback_error_t f)
+                               __attribute__((nonnull(1,2)));
 int TcpBus_callback_disconnect_remove(struct TcpBus_bus *bus,
-                                      TcpBus_callback_disconnect_t f);
+                                      TcpBus_callback_disconnect_t f)
+                                     __attribute__((nonnull(1,2)));
 
 
 

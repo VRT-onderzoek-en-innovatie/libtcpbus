@@ -4,6 +4,8 @@
 #include <netinet/in.h>
 #include <ev.h>
 #include <stdio.h>
+#include <errno.h>
+#include <string.h>
 
 static const int MAX_CONN_BACKLOG = 32;
 
@@ -51,7 +53,7 @@ int main(int argc, char* argv[]) {
 		addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 		addr.sin_port = htons(10000);
 
-		rv = bind(s_listen, &addr, addr_len);
+		rv = bind(s_listen, (struct sockaddr*)&addr, addr_len);
 		fprintf(stderr, "bind(): %d\n", rv);
 		rv = listen(s_listen, MAX_CONN_BACKLOG);
 		fprintf(stderr, "listen(): %d\n", rv);
@@ -61,13 +63,13 @@ int main(int argc, char* argv[]) {
 	{
 		struct sigaction act;
 		if( sigaction(SIGPIPE, NULL, &act) == -1) {
-			   callback_error_call(NULL, 0, errno);
-			   return -1;
+			fprintf(stderr, "sigaction() failed: %s", strerror(errno));
+			return -1;
 		}
 		act.sa_handler = SIG_IGN; // Ignore SIGPIPE (we'll handle the write()-error)
 		if( sigaction(SIGPIPE, &act, NULL) == -1 ) {
-			   callback_error_call(NULL, 0, errno);
-			   return -1;
+			fprintf(stderr, "sigaction() failed: %s", strerror(errno));
+			return -1;
 		}
 	}
 
