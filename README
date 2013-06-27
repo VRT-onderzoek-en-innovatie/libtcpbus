@@ -1,0 +1,1 @@
+Generic TCP-bus. Simply forwards all incomming traffic to all other connected sockets (mix-minus style bus).
