@@ -1,2 +1,2 @@
 EXTRA_DIST = GITREVISION
-SUBDIRS = include src test
+SUBDIRS = include src test bin

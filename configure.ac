@@ -26,6 +26,12 @@ AC_ARG_ENABLE([ipv6],
 	[enable_ipv6=$enableval],[enable_ipv6=yes])
 AS_IF([test x$enable_ipv6 == xyes], [AC_DEFINE([ENABLE_IPV6],[1],[Define to 1 to enable IPv6 support])] )
 
+AC_ARG_ENABLE([binary],
+	AC_HELP_STRING([--enable-binary],[Also build stand-alone binary]),
+	[want_binary=$enableval],[want_binary=no])
+AM_CONDITIONAL([WANT_BINARY], [test x$want_binary == xyes])
+
+
 # Checks for programs.
 ######################
 AC_PROG_CC
@@ -56,6 +62,7 @@ AC_CONFIG_FILES([
 	include/Makefile
 	src/Makefile
 	test/Makefile
+	bin/Makefile
 	])
 AC_OUTPUT
 
@@ -69,5 +76,8 @@ ${PACKAGE_NAME} version ${PACKAGE_VERSION} (${PACKAGE_GITREVISION})
 
  Configured with:
   IPv6: $enable_ipv6
+
+ Will additionally build:
+  binary: $want_binary
 --------------------------------------------------------------------------------
 "
