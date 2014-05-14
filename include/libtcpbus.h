@@ -21,7 +21,7 @@ struct TcpBus_bus;
 /* Initialize a new TCP-bus.
  *
  * @loop is the libev-loop to use (if MULTIPLICITY is used).
- * @socket is a socket openen in listening mode.
+ * @socket is a socket opened in listening mode.
  *
  * returns a pointer to an TcpBus_bus structure which represents this bus.
  * or NULL if an error occured
