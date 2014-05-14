@@ -1,0 +1,25 @@
+Source: libtcpbus
+Priority: extra
+Maintainer: Niels Laukens <niels.laukens@vrt.be>
+Build-Depends: debhelper (>= 9.0.0), autotools-dev, dh-autoreconf
+Standards-Version: 3.9.4
+Section: libs
+Homepage: https://github.com/VRT-onderzoek-en-innovatie/libtcpbus
+Vcs-Git: git://github.com/VRT-onderzoek-en-innovatie/libtcpbus.git
+Vcs-Browser: https://github.com/VRT-onderzoek-en-innovatie/libtcpbus
+
+Package: libtcpbus-dev
+Section: libdevel
+Architecture: any
+Depends: libtcpbus0 (= ${binary:Version}), ${misc:Depends}
+Description: Generic TCP bus (mix-minus communication) - development package
+ Library providing a TCP bus that sets up mix-minus communication between
+ connected clients: each byte is sent to all other attached clients.
+
+Package: libtcpbus0
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Generic TCP bus (mix-minus communication)
+ Library providing a TCP bus that sets up mix-minus communication between
+ connected clients: each byte is sent to all other attached clients.

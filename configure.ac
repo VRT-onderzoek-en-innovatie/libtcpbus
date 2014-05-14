@@ -1,7 +1,14 @@
 AC_PREREQ(2.61)
-AC_INIT([libtcpbus], [0.0.0], [])
-AM_INIT_AUTOMAKE([dist-bzip2 -Wall])
+AC_INIT([libtcpbus], m4_esyscmd_s([dpkg-parsechangelog | sed -n 's/^Version: //p']), [])
+AM_INIT_AUTOMAKE([foreign dist-bzip2 -Wall])
 LT_INIT
+
+PACKAGE_VERSION_MAJOR=`echo "$PACKAGE_VERSION" | sed 's/\(@<:@@<:@:digit:@:>@@:>@\+\)\.\(@<:@@<:@:digit:@:>@@:>@\+\)\.\(@<:@@<:@:digit:@:>@@:>@\+\)/\1/' `
+PACKAGE_VERSION_MINOR=`echo "$PACKAGE_VERSION" | sed 's/\(@<:@@<:@:digit:@:>@@:>@\+\)\.\(@<:@@<:@:digit:@:>@@:>@\+\)\.\(@<:@@<:@:digit:@:>@@:>@\+\)/\2/' `
+PACKAGE_VERSION_REVISION=`echo "$PACKAGE_VERSION" | sed 's/\(@<:@@<:@:digit:@:>@@:>@\+\)\.\(@<:@@<:@:digit:@:>@@:>@\+\)\.\(@<:@@<:@:digit:@:>@@:>@\+\)/\3/' `
+AC_SUBST(PACKAGE_VERSION_MAJOR)
+AC_SUBST(PACKAGE_VERSION_MINOR)
+AC_SUBST(PACKAGE_VERSION_REVISION)
 
 AC_MSG_CHECKING([whether this is a Git repository])
 PACKAGE_GITREVISION=`git describe --tags --always HEAD 2>/dev/null`
@@ -59,6 +66,7 @@ AC_CONFIG_FILES([
 	include/Makefile
 	src/Makefile
 	test/Makefile
+	${PACKAGE_NAME}.pc
 	])
 AC_OUTPUT
 

@@ -1,0 +1,11 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libtcpbus
+Description: TCP bus (mix-minus style)
+Requires: libev
+Version: @PACKAGE_VERSION@
+Libs: -L${libdir} -ltcpbus -lev
+Cflags: -I${includedir}
