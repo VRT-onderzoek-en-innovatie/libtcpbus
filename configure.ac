@@ -26,11 +26,6 @@ AC_ARG_ENABLE([ipv6],
 	[enable_ipv6=$enableval],[enable_ipv6=yes])
 AS_IF([test x$enable_ipv6 == xyes], [AC_DEFINE([ENABLE_IPV6],[1],[Define to 1 to enable IPv6 support])] )
 
-AC_ARG_ENABLE([binary],
-	AC_HELP_STRING([--enable-binary],[Also build stand-alone binary]),
-	[want_binary=$enableval],[want_binary=no])
-AM_CONDITIONAL([WANT_BINARY], [test x$want_binary == xyes])
-
 
 # Checks for programs.
 ######################
@@ -38,53 +33,22 @@ AC_PROG_CC
 AC_PROG_CPP
 AM_PROG_CC_C_O # per product options in Makefile.am
 
-if test x$want_binary == xyes; then
-	AC_PROG_CXX
-	AC_C_CONST
-	AC_C_INLINE
-	AC_PROG_RANLIB
-fi
 
 # Checks for libraries.
 #######################
 AC_CHECK_LIB(ev, ev_run, , [AC_MSG_ERROR([Couldn't find libev])]) dnl '
 
-if test x$want_binary == xyes; then
-	AC_CHECK_LIB(log, LogAtLevel_nodebug, , [AC_MSG_ERROR([Couldn't find liblog])]) dnl '
-fi
 
 # Checks for header files.
 ##########################
-if test x$want_binary == xyes; then
-	AC_HEADER_STDBOOL
-	AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h netinet/in.h sys/ioctl.h sys/socket.h termios.h])
-
-	AC_TYPE_PID_T
-	AC_TYPE_SIZE_T
-	AC_TYPE_SSIZE_T
-fi
 
 
 # Checks for typedefs, structures, and compiler characteristics.
 ################################################################
-if test x$want_binary == xyes; then
-	AC_HEADER_STDBOOL
-	AC_CHECK_HEADERS([arpa/inet.h fcntl.h netdb.h netinet/in.h sys/ioctl.h sys/socket.h termios.h])
-
-	AC_TYPE_PID_T
-	AC_TYPE_SIZE_T
-	AC_TYPE_SSIZE_T
-fi
 
 
 # Checks for library functions.
 ###############################
-if test x$want_binary == xyes; then
-	AC_FUNC_FORK
-	AC_FUNC_MALLOC
-	AC_FUNC_STRERROR_R
-	AC_CHECK_FUNCS([bzero socket strerror])
-fi
 
 
 
@@ -95,8 +59,6 @@ AC_CONFIG_FILES([
 	include/Makefile
 	src/Makefile
 	test/Makefile
-	bin/Makefile
-	bin/Socket/Makefile
 	])
 AC_OUTPUT
 
@@ -110,8 +72,5 @@ ${PACKAGE_NAME} version ${PACKAGE_VERSION} (${PACKAGE_GITREVISION})
 
  Configured with:
   IPv6: $enable_ipv6
-
- Will additionally build:
-  binary: $want_binary
 --------------------------------------------------------------------------------
 "
