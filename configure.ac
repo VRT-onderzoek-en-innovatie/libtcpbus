@@ -60,6 +60,11 @@ AC_CHECK_LIB(ev, ev_run, , [AC_MSG_ERROR([Couldn't find libev])]) dnl '
 ###############################
 
 
+# Add some info to config.h
+AC_DEFINE_UNQUOTED([CONFIGURE_ARGS],["$ac_configure_args"],[Configure flags])
+AC_DEFINE_UNQUOTED([CFLAGS],["$CFLAGS"],[Used C flags])
+AC_DEFINE_UNQUOTED([CXXFLAGS],["$CXXFLAGS"],[Used C++ flags])
+AC_DEFINE_UNQUOTED([CPPFLAGS],["$CPPFLAGS"],[Used C-preprocessor flags])
 
 # Output
 ########
@@ -78,9 +83,10 @@ echo "
 --------------------------------------------------------------------------------
 ${PACKAGE_NAME} version ${PACKAGE_VERSION} (${PACKAGE_GITREVISION})
 
- Prefix:       '${prefix}'
- C Compiler:   '${CC} ${CFLAGS} ${CPPFLAGS}'
- Libraries:    '${LIBS}'
+ Prefix:        '${prefix}'
+ C Compiler:    '${CC} ${CFLAGS} ${CPPFLAGS}'
+ C++ Compiler:  '${CXX} ${CXXFLAGS} ${CPPFLAGS}'
+ Libraries:     '${LIBS}'
 
  Configured with:
   IPv6: $enable_ipv6
