@@ -61,7 +61,7 @@ int main(int argc, char* argv[]) {
 	struct {
 		std::string bind_addr_listen;
 	} options = {
-		/* bind_addr_listen = */ "[127.0.0.1]:[10000]",
+		/* bind_addr_listen = */ "[127.0.0.1]:[0]",
 		};
 
 	{ // Parse options
